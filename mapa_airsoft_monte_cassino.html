@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Operação Monte Cassino - Mapa do Jogador</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+body { margin:0; font-family:Arial, Helvetica, sans-serif; }
+#map { height:100vh; width:100%; }
+
+.briefing {
+position:absolute;
+top:10px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(0,0,0,0.75);
+color:white;
+padding:8px 14px;
+border-radius:8px;
+font-size:13px;
+z-index:1000;
+text-align:center;
+}
+
+.toggleBtn{
+position:absolute;
+bottom:20px;
+right:15px;
+z-index:1000;
+background:#222;
+color:white;
+border:none;
+padding:10px 14px;
+border-radius:6px;
+font-size:13px;
+}
+
+.legend{
+position:absolute;
+bottom:70px;
+left:10px;
+background:rgba(0,0,0,0.8);
+color:white;
+padding:10px;
+border-radius:8px;
+font-size:12px;
+line-height:1.4;
+z-index:1000;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="briefing">
+<b>OPERAÇÃO MONTE CASSINO</b><br>
+Avance até o objetivo estratégico
+</div>
+
+<button class="toggleBtn" onclick="toggleInfo()">Mostrar / Ocultar Info</button>
+
+<div id="legend" class="legend">
+<b>Legenda</b><br>
+🟡 Objetivo Principal<br>
+🔵 Spawn Brasil<br>
+🔴 Spawn Alemanha<br>
+🟨 Limite do Campo<br>
+🟢 Você (GPS)
+</div>
+
+<div id="map"></div>
+
+<script>
+
+// =============================
+// COORDENADAS
+// =============================
+
+const objetivo = [-10.101841, -48.307179];
+
+const campo = [
+[-10.100312, -48.310651],
+[-10.105563, -48.309666],
+[-10.105418, -48.302633],
+[-10.099712, -48.303294]
+];
+
+const spawnBrasil = [
+[-10.100279, -48.303656],
+[-10.100223, -48.307580]
+];
+
+const spawnAlemanha = [
+[-10.105278, -48.305025],
+[-10.106053, -48.307682],
+[-10.102515, -48.310121]
+];
+
+// =============================
+// MAPA
+// =============================
+
+const map = L.map('map').setView(objetivo, 15);
+
+const satelite = L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+{maxZoom:19}
+).addTo(map);
+
+// =============================
+// CAMADA DE INFORMAÇÕES
+// =============================
+
+const infoLayer = L.layerGroup().addTo(map);
+
+// =============================
+// OBJETIVO
+// =============================
+
+const objetivoIcon = L.icon({
+iconUrl:"https://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
+iconSize:[40,40]
+});
+
+L.marker(objetivo,{icon:objetivoIcon})
+.addTo(infoLayer)
+.bindPopup("OBJETIVO PRINCIPAL");
+
+// =============================
+// SPAWNS BRASIL
+// =============================
+
+const brasilIcon = L.icon({
+iconUrl:"https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+iconSize:[32,32]
+});
+
+spawnBrasil.forEach((coord,i)=>{
+L.marker(coord,{icon:brasilIcon})
+.addTo(infoLayer)
+.bindPopup("Spawn Brasil " + (i+1));
+});
+
+// =============================
+// SPAWNS ALEMANHA
+// =============================
+
+const alemanhaIcon = L.icon({
+iconUrl:"https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+iconSize:[32,32]
+});
+
+spawnAlemanha.forEach((coord,i)=>{
+L.marker(coord,{icon:alemanhaIcon})
+.addTo(infoLayer)
+.bindPopup("Spawn Alemanha " + (i+1));
+});
+
+// =============================
+// LIMITE DO CAMPO
+// =============================
+
+L.polygon(campo,{color:'yellow',weight:3,fillOpacity:0.05})
+.addTo(infoLayer)
+.bindPopup("Limite do campo");
+
+// =============================
+// GPS DO JOGADOR
+// =============================
+
+let playerMarker;
+let accuracyCircle;
+
+function onLocationFound(e) {
+
+const radius = e.accuracy;
+
+if(playerMarker){
+map.removeLayer(playerMarker);
+map.removeLayer(accuracyCircle);
+}
+
+playerMarker = L.circleMarker(e.latlng,{
+radius:8,
+color:'#00ff00',
+fillColor:'#00ff00',
+fillOpacity:1
+}).addTo(map)
+.bindPopup("Sua posição");
+
+accuracyCircle = L.circle(e.latlng,{
+radius:radius,
+color:'#00ff00',
+fillOpacity:0.05
+}).addTo(map);
+
+}
+
+function onLocationError(e) {
+alert("GPS não disponível ou permissão negada.");
+}
+
+map.on('locationfound', onLocationFound);
+map.on('locationerror', onLocationError);
+
+map.locate({
+watch:true,
+setView:true,
+maxZoom:17,
+enableHighAccuracy:true
+});
+
+// =============================
+// BOTÃO TOGGLE INFO
+// =============================
+
+let infoVisible = true;
+
+function toggleInfo(){
+
+if(infoVisible){
+map.removeLayer(infoLayer);
+document.getElementById("legend").style.display="none";
+}else{
+map.addLayer(infoLayer);
+document.getElementById("legend").style.display="block";
+}
+
+infoVisible = !infoVisible;
+
+}
+
+</script>
+
+</body>
+</html>
